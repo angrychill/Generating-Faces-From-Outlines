@@ -1,0 +1,63 @@
+import cv2
+import os
+import numpy as np
+from concurrent.futures import ProcessPoolExecutor
+
+TRAIN_FOLDER = "PATH//TRAIN_DATA"
+VALID_FOLDER = "PATH//VALID_DATA"
+PROCESSED_TRAIN_FOLDER = "PATH//PROCESSED_TRAIN_DATA"
+PROCESSED_VALID_FOLDER = "PATH//PROCESSED_VALID_DATA"
+
+BATCH_SIZE = 128  # Broj slika koje procesiramo odjednom
+
+# Kreiraj foldere za obrađene slike
+os.makedirs(PROCESSED_TRAIN_FOLDER, exist_ok=True)
+os.makedirs(PROCESSED_VALID_FOLDER, exist_ok=True)
+
+def remove_noise_and_enhance_batch(image_paths, output_folder):
+    """Funkcija za uklanjanje šuma i poboljšanje kvalitete slike u batchu."""
+    for image_path in image_paths:
+        image = cv2.imread(image_path)
+        if image is None:
+            print(f"Ne mogu učitati sliku: {image_path}")
+            continue
+
+        # Uklanjanje šuma koristeći Gaussov filter
+        image_denoised = cv2.GaussianBlur(image, (5, 5), 0)
+
+        # Poboljšanje kontrasta slike koristeći histogram equalization
+        image_gray = cv2.cvtColor(image_denoised, cv2.COLOR_BGR2GRAY)
+        image_equalized = cv2.equalizeHist(image_gray)
+
+        # Vratimo sliku u originalnu boju
+        final_image = cv2.cvtColor(image_equalized, cv2.COLOR_GRAY2BGR)
+
+        # Spremi obrađenu sliku
+        filename = os.path.basename(image_path)
+        output_path = os.path.join(output_folder, filename)
+        cv2.imwrite(output_path, final_image)
+
+def preprocess_images_in_batches(input_folder, output_folder, batch_size):
+    """Funkcija za obrađivanje slika u batchovima."""
+    all_image_paths = []
+    for root, _, files in os.walk(input_folder):
+        for file in files:
+            if file.endswith(".jpg"):
+                image_path = os.path.join(root, file)
+                all_image_paths.append(image_path)
+
+    # Podijeli slike na batchove
+    batches = [all_image_paths[i:i + batch_size] for i in range(0, len(all_image_paths), batch_size)]
+
+    # Paralelno obradi batchove koristeći višestruko procesiranje
+    with ProcessPoolExecutor() as executor:
+        for batch in batches:
+            executor.submit(remove_noise_and_enhance_batch, batch, output_folder)
+
+if __name__ == '__main__':
+    # Predprocesiraj slike u treniranim i validacijskim folderima
+    preprocess_images_in_batches(TRAIN_FOLDER, PROCESSED_TRAIN_FOLDER, BATCH_SIZE)
+    preprocess_images_in_batches(VALID_FOLDER, PROCESSED_VALID_FOLDER, BATCH_SIZE)
+
+    print(f"Predprocesirane slike spremljene u: {PROCESSED_TRAIN_FOLDER} i {PROCESSED_VALID_FOLDER}")
+
