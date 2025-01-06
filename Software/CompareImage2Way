@@ -1,0 +1,52 @@
+import numpy as np
+from facenet_pytorch import MTCNN, InceptionResnetV1
+from scipy.spatial.distance import cosine
+from PIL import Image
+
+# Load pre-trained FaceNet model
+mtcnn = MTCNN(keep_all=True)
+inception_resnet = InceptionResnetV1(pretrained='vggface2').eval()
+
+def extract_face_embeddings(image_path):
+    """Extract the face embedding from the image using FaceNet"""
+    image = Image.open(image_path)
+    
+    # Detect faces in the image
+    faces, _ = mtcnn.detect(image)
+    if faces is None:
+        raise ValueError("No face detected in the image")
+    
+    # Extract the embeddings for the first face (you can modify this for multiple faces)
+    face_embedding = inception_resnet(mtcnn(image))[0]
+    return face_embedding
+
+def compare_faces(original_image_path, generated_image_path):
+    """Compare two images and return the similarity score using FaceNet"""
+    try:
+        # Extract face embeddings for both images
+        original_embedding = extract_face_embeddings(original_image_path)
+        generated_embedding = extract_face_embeddings(generated_image_path)
+
+        # Compute cosine similarity (closer to 0 means more similar)
+        similarity = cosine(original_embedding.detach().numpy(), generated_embedding.detach().numpy())
+        
+        # Return whether faces are the same (based on a threshold, e.g., similarity < 0.6)
+        verified = similarity < 0.6  # Adjust this threshold based on your needs
+
+        return {
+            "verified": verified,
+            "distance": similarity
+        }
+
+    except ValueError as e:
+        print(str(e))
+        return None
+
+# Example usage
+original_image_path = "PATHNaomi_Watts_0001.jpg"
+generated_image_path = "PATH/Naomi_Watts_0001.jpg"
+result = compare_faces(original_image_path, generated_image_path)
+
+if result:
+    print("Are the faces the same?", result["verified"])
+    print("Similarity score (cosine distance):", result["distance"])
