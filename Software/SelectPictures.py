@@ -1,16 +1,24 @@
 import os
 import shutil
 import random
+from deepface import DeepFace
 
-MAIN_FOLDER = "PATH"
-TRAIN_FOLDER = "PATH"
-VALID_FOLDER = "PATH"
+MAIN_FOLDER = "PATH/lfw_funneled"
+TRAIN_FOLDER = "PATH/TRAIN_DATA"
+VALID_FOLDER = "PATH/VALID_DATA"
+MULTIPLE_FACES_FOLDER = "PATH/MULT_FACE"
+NO_FACE_FOLDER = "PATH/NO_FACE_DETECTED"
 
-TRAIN_SPLIT = 0.7
+TRAIN_SPLIT = 0.7  # Omjer podjele slika na trening i validaciju
+BATCH_SIZE = 128  # Broj slika koje procesiramo odjednom
 
+# Kreiraj sve potrebne foldere
 os.makedirs(TRAIN_FOLDER, exist_ok=True)
 os.makedirs(VALID_FOLDER, exist_ok=True)
+os.makedirs(MULTIPLE_FACES_FOLDER, exist_ok=True)
+os.makedirs(NO_FACE_FOLDER, exist_ok=True)
 
+# Funkcija za dobivanje svih slika iz svih podfoldera
 def get_all_images(main_folder):
     """Funkcija za dobivanje svih slika iz svih podfoldera."""
     image_paths = []
@@ -20,23 +28,67 @@ def get_all_images(main_folder):
                 image_paths.append(os.path.join(root, file))
     return image_paths
 
+# Funkcija za podjelu slika na TRAIN i VALID setove
 def split_images(image_paths, train_split):
     """Funkcija za podjelu slika na TRAIN i VALID setove."""
     random.shuffle(image_paths)
     split_index = int(len(image_paths) * train_split)
     return image_paths[:split_index], image_paths[split_index:]
 
+# Funkcija za spremanje slika u zadani folder
 def save_images(image_paths, destination_folder):
     """Funkcija za spremanje slika u zadani folder."""
     for image_path in image_paths:
         filename = os.path.basename(image_path)
         destination_path = os.path.join(destination_folder, filename)
-        shutil.copy(image_path, destination_path)
+        
+        # Provjera postoji li datoteka prije kopiranja
+        if os.path.exists(image_path):
+            shutil.copy(image_path, destination_path)
+        else:
+            print(f"Datoteka {image_path} nije pronađena.")
 
+# Funkcija za klasifikaciju slika prema broju prepoznatih lica
+def classify_and_move_images(image_paths):
+    """Klasificira slike prema broju lica na njima i premješta ih u odgovarajuće foldere."""
+    for i in range(0, len(image_paths), BATCH_SIZE):
+        batch = image_paths[i:i + BATCH_SIZE]
+
+        # Analiza slika za detekciju lica
+        results = []
+        for image_path in batch:
+            try:
+                # Detekcija lica pomoću extract_faces
+                faces = DeepFace.extract_faces(image_path, enforce_detection=False)
+                num_faces = len(faces)  # Broj prepoznatih lica
+            except Exception as e:
+                num_faces = 0
+
+            results.append((image_path, num_faces))
+
+        # Premještanje slika u odgovarajuće foldere
+        for image_path, num_faces in results:
+            filename = os.path.basename(image_path)
+            if num_faces == 0:
+                # Slika bez lica
+                shutil.move(image_path, os.path.join(NO_FACE_FOLDER, filename))
+            elif num_faces > 1:
+                # Slika sa više od jednog lica
+                shutil.move(image_path, os.path.join(MULTIPLE_FACES_FOLDER, filename))
+            else:
+                # Slika s jednim licem, premjestiti na odgovarajući folder
+                destination_folder = TRAIN_FOLDER if random.random() < TRAIN_SPLIT else VALID_FOLDER
+                shutil.move(image_path, os.path.join(destination_folder, filename))
+
+# Glavni dio koda
 all_images = get_all_images(MAIN_FOLDER)
 
 train_images, valid_images = split_images(all_images, TRAIN_SPLIT)
 
+# Klasifikacija slika prije premještanja u trening/validacijske foldere
+classify_and_move_images(all_images)
+
+# Klasifikacija za treniranje i validaciju
 save_images(train_images, TRAIN_FOLDER)
 save_images(valid_images, VALID_FOLDER)
 
