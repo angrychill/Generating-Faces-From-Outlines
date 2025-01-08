@@ -3,13 +3,14 @@ import shutil
 import random
 from deepface import DeepFace
 
-MAIN_FOLDER = "PATH/lfw_funneled"
-TRAIN_FOLDER = "PATH/TRAIN_DATA"
-VALID_FOLDER = "PATH/VALID_DATA"
-MULTIPLE_FACES_FOLDER = "PATH/MULT_FACE"
-NO_FACE_FOLDER = "PATH/NO_FACE_DETECTED"
+BASE_FOLDER = "C:/Users/Iris/Documents/TrainingData/"
+MAIN_FOLDER = BASE_FOLDER + "lfw_funneled"
+TRAIN_FOLDER = BASE_FOLDER + "TrainingSet"
+VALID_FOLDER = BASE_FOLDER + "ValidationSet"
+MULTIPLE_FACES_FOLDER = BASE_FOLDER + "MultipleFaces"
+NO_FACE_FOLDER = BASE_FOLDER + "NoFaces"
 
-TRAIN_SPLIT = 0.7  # Omjer podjele slika na trening i validaciju
+TRAIN_SPLIT = 0.8  # Omjer podjele slika na trening i validaciju
 BATCH_SIZE = 128  # Broj slika koje procesiramo odjednom
 
 # Kreiraj sve potrebne foldere

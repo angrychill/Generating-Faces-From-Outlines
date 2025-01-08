@@ -4,13 +4,16 @@ import os
 from pathlib import Path
 import numpy as np
 
+BASE_FOLDER = "C:/Users/Iris/Documents/TrainingData/"
 # Define paths for processed train and validation data
-PROCESSED_TRAIN_FOLDER = "C:/Users/Administrator/Downloads/DatasetBS/archive12/lfw-funneled/PROCESSED_TRAIN_DATA"
-PROCESSED_VALID_FOLDER = "C:/Users/Administrator/Downloads/DatasetBS/archive12/lfw-funneled/PROCESSED_VALID_DATA"
+PROCESSED_TRAIN_FOLDER = BASE_FOLDER + "Combined_Training_Set"
+PROCESSED_VALID_FOLDER = BASE_FOLDER + "Combined_Validation_Set"
+
+PREDICTOR_FILE = "C:\Program Files\GitHub projects\Facial-Deidentification-Using-GAN\Software\shape_predictor_68_face_landmarks.dat"
 
 # Define paths for saving new data
-NEW_TRAIN_FOLDER = "C:/Users/Administrator/Downloads/DatasetBS/archive12/lfw-funneled/NEW_TRAIN_FOLDER"
-NEW_VALID_FOLDER = "C:/Users/Administrator/Downloads/DatasetBS/archive12/lfw-funneled/NEW_VALID_FOLDER"
+NEW_TRAIN_FOLDER = BASE_FOLDER + "Extracted_Training_Data"
+NEW_VALID_FOLDER = BASE_FOLDER + "Extracted_Validation_Data"
 
 # Ensure the output directories exist
 Path(NEW_TRAIN_FOLDER).mkdir(parents=True, exist_ok=True)
@@ -18,7 +21,7 @@ Path(NEW_VALID_FOLDER).mkdir(parents=True, exist_ok=True)
 
 # Initialize dlib's face detector and facial landmark predictor
 detector = dlib.get_frontal_face_detector()
-predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")  # Download this model from Dlib's website
+predictor = dlib.shape_predictor(PREDICTOR_FILE)  # Download this model from Dlib's website
 
 # Function to extract and save facial landmarks and create annotated images
 def process_images_with_landmarks(input_folder, output_folder, target_size=(256, 256)):

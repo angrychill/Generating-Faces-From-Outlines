@@ -3,12 +3,15 @@ import os
 import numpy as np
 from concurrent.futures import ProcessPoolExecutor
 
-TRAIN_FOLDER = "C:/Users/Administrator/Downloads/DatasetBS/archive12/lfw-funneled/TRAIN_DATA"
-VALID_FOLDER = "C:/Users/Administrator/Downloads/DatasetBS/archive12/lfw-funneled/VALID_DATA"
-PROCESSED_TRAIN_FOLDER_STEP1 = "C:/Users/Administrator/Downloads/DatasetBS/archive12/lfw-funneled/PROCESSED_TRAIN_DATA_STEP1"
-PROCESSED_VALID_FOLDER_STEP1 = "C:/Users/Administrator/Downloads/DatasetBS/archive12/lfw-funneled/PROCESSED_VALID_DATA_STEP1"
-PROCESSED_TRAIN_FOLDER_STEP2 = "C:/Users/Administrator/Downloads/DatasetBS/archive12/lfw-funneled/PROCESSED_TRAIN_DATA_STEP2"
-PROCESSED_VALID_FOLDER_STEP2 = "C:/Users/Administrator/Downloads/DatasetBS/archive12/lfw-funneled/PROCESSED_VALID_DATA_STEP2"
+BASE_FOLDER = "C:/Users/Iris/Documents/TrainingData/"
+TRAIN_FOLDER = BASE_FOLDER + "TrainingSet"
+VALID_FOLDER = BASE_FOLDER + "ValidationSet"
+PROCESSED_TRAIN_FOLDER_STEP1 = BASE_FOLDER + "Training_Step_1"
+PROCESSED_VALID_FOLDER_STEP1 = BASE_FOLDER + "Valid_Step_1"
+PROCESSED_TRAIN_FOLDER_STEP2 = BASE_FOLDER + "Training_Step_2"
+PROCESSED_VALID_FOLDER_STEP2 = BASE_FOLDER + "Valid_Step_2"
+COMBINED_TRAIN_FOLDER = BASE_FOLDER + "Combined_Training_Set"
+COMBINED_VALID_FOLDER = BASE_FOLDER + "Combined_Validation_Set"
 
 BATCH_SIZE = 128  # Broj slika koje procesiramo odjednom
 TARGET_SIZE = (256, 256)  # Ciljna veličina slika (256x256)
@@ -18,6 +21,8 @@ os.makedirs(PROCESSED_TRAIN_FOLDER_STEP1, exist_ok=True)
 os.makedirs(PROCESSED_VALID_FOLDER_STEP1, exist_ok=True)
 os.makedirs(PROCESSED_TRAIN_FOLDER_STEP2, exist_ok=True)
 os.makedirs(PROCESSED_VALID_FOLDER_STEP2, exist_ok=True)
+os.makedirs(COMBINED_TRAIN_FOLDER, exist_ok=True)
+os.makedirs(COMBINED_VALID_FOLDER, exist_ok=True)
 
 def adjust_contrast(image, alpha=1.2, beta=30):
     """Povećaj kontrast slike."""
@@ -61,7 +66,9 @@ def preprocess_image_step1(image_path, output_folder):
     # Spremi obrađenu sliku
     filename = os.path.basename(image_path)
     output_path = os.path.join(output_folder, filename)
+    # output_path_combined = os.path.join(combined_folder, "step_2_", filename)
     cv2.imwrite(output_path, image)
+    # cv2.imwrite(output_path_combined, image)
     print(f"Slika spremljena u STEP1: {output_path}")
 
 def preprocess_image_step2(image_path, output_folder):
@@ -82,8 +89,10 @@ def preprocess_image_step2(image_path, output_folder):
     # Spremi obrađenu sliku
     filename = os.path.basename(image_path)
     output_path = os.path.join(output_folder, filename)
+    # output_path_combined = os.path.join(combined_folder, "step_2_", filename)
     cv2.imwrite(output_path, image)
-    print(f"Slika spremljena u STEP2: {output_path}")
+    # cv2.imwrite(output_path_combined, image)
+    # print(f"Slika spremljena u STEP2: {output_path} i {output_path_combined}")
 
 def preprocess_images_in_batches(input_folder, output_folder, batch_size, step_function):
     """Funkcija za obrađivanje slika u batchovima."""
@@ -111,4 +120,4 @@ if __name__ == '__main__':
     preprocess_images_in_batches(PROCESSED_TRAIN_FOLDER_STEP1, PROCESSED_TRAIN_FOLDER_STEP2, BATCH_SIZE, preprocess_image_step2)
     preprocess_images_in_batches(PROCESSED_VALID_FOLDER_STEP1, PROCESSED_VALID_FOLDER_STEP2, BATCH_SIZE, preprocess_image_step2)
 
-    print(f"Predprocesirane slike spremljene u STEP1 i STEP2 foldere.")
+    print(f"Predprocesirane slike spremljene u foldere.")
