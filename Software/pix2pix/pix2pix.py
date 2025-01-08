@@ -6,6 +6,7 @@ import itertools
 import time
 import datetime
 import sys
+from pathlib import Path
 
 import torchvision.transforms as transforms
 from torchvision.utils import save_image
@@ -20,6 +21,7 @@ from datasets import *
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--epoch", type=int, default=0, help="epoch to start training from")
@@ -40,6 +42,8 @@ parser.add_argument(
 parser.add_argument("--checkpoint_interval", type=int, default=-1, help="interval between model checkpoints")
 opt = parser.parse_args()
 print(opt)
+SET_INPUT= "C:/Users/Iris/Documents/TrainingData/Combined_Extract_Training_ImgOnly"
+SET_OUTPUT = "C:/Users/Iris/Documents/TrainingData/Combined_Training_Set"
 
 os.makedirs("images/%s" % opt.dataset_name, exist_ok=True)
 os.makedirs("saved_models/%s" % opt.dataset_name, exist_ok=True)
@@ -87,14 +91,14 @@ transforms_ = [
 ]
 
 dataloader = DataLoader(
-    ImageDataset("../../data/%s" % opt.dataset_name, transforms_=transforms_),
+    ImageDataset(SET_INPUT, SET_OUTPUT, transforms_=transforms_),
     batch_size=opt.batch_size,
     shuffle=True,
     num_workers=opt.n_cpu,
 )
 
 val_dataloader = DataLoader(
-    ImageDataset("../../data/%s" % opt.dataset_name, transforms_=transforms_, mode="val"),
+    ImageDataset(SET_INPUT, SET_OUTPUT, transforms_=transforms_, mode="val"),
     batch_size=10,
     shuffle=True,
     num_workers=1,
