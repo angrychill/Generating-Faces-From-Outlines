@@ -1,7 +1,7 @@
 import os
 from PIL import Image
 
-BASE_FOLDER = "C:/Users/Iris/Documents/TrainingData/"
+BASE_FOLDER = "C:/Users/Iris/Documents/TrainingData New/"
 MAIN_FOLDER = BASE_FOLDER + "celeb" # koji dataset koristiti
 TRAIN_FOLDER = MAIN_FOLDER + "TrainingSet"
 VALID_FOLDER = MAIN_FOLDER + "ValidationSet"

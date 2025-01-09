@@ -99,5 +99,5 @@ def process_images_with_landmarks(input_folder, output_folder, target_size=(256,
     print(f"Processed images saved in {output_folder}")
 
 # Process train and validation datasets
-process_images_with_landmarks(PROCESSED_TRAIN_FOLDER, NEW_TRAIN_FOLDER)
-# process_images_with_landmarks(PROCESSED_VALID_FOLDER, NEW_VALID_FOLDER)
+# process_images_with_landmarks(PROCESSED_TRAIN_FOLDER, NEW_TRAIN_FOLDER)
+process_images_with_landmarks(PROCESSED_VALID_FOLDER, NEW_VALID_FOLDER)
