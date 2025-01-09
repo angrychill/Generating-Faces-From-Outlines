@@ -2,20 +2,21 @@ import os
 from PIL import Image
 
 BASE_FOLDER = "C:/Users/Iris/Documents/TrainingData/"
-TRAIN_FOLDER = BASE_FOLDER + "TrainingSet"
-VALID_FOLDER = BASE_FOLDER + "ValidationSet"
-PROCESSED_TRAIN_FOLDER_STEP1 = BASE_FOLDER + "Training_Step_1"
-PROCESSED_VALID_FOLDER_STEP1 = BASE_FOLDER + "Valid_Step_1"
-PROCESSED_TRAIN_FOLDER_STEP2 = BASE_FOLDER + "Training_Step_2"
-PROCESSED_VALID_FOLDER_STEP2 = BASE_FOLDER + "Valid_Step_2"
-COMBINED_TRAIN_FOLDER = BASE_FOLDER + "Combined_Training_Set"
-COMBINED_VALID_FOLDER = BASE_FOLDER + "Combined_Validation_Set"
-EXTRACTED_TRAINING_FOLDER = BASE_FOLDER + "Extracted_Training_Data"
-EXTRACTED_VALIDATION_FOLDER = BASE_FOLDER + "Extracted_Validation_Data"
-TRAIN_FOLDER_WITHOUT_TXT = BASE_FOLDER + "Combined_Extract_Training_ImgOnly"
-VALID_FOLDER_WITHOUT_TXT = BASE_FOLDER + "Combined_Extract_Validation_ImgOnly"
-TRAIN_FOLDER_WITH_TXT = BASE_FOLDER + "Combined_Extract_Training_TxtOnly"
-VALID_FOLDER_WITH_TXT = BASE_FOLDER + "Combined__Extract_Validation_TxtOnly"
+MAIN_FOLDER = BASE_FOLDER + "celeb" # koji dataset koristiti
+TRAIN_FOLDER = MAIN_FOLDER + "TrainingSet"
+VALID_FOLDER = MAIN_FOLDER + "ValidationSet"
+PROCESSED_TRAIN_FOLDER_STEP1 = MAIN_FOLDER + "Training_Step_1"
+PROCESSED_VALID_FOLDER_STEP1 = MAIN_FOLDER + "Valid_Step_1"
+PROCESSED_TRAIN_FOLDER_STEP2 = MAIN_FOLDER + "Training_Step_2"
+PROCESSED_VALID_FOLDER_STEP2 = MAIN_FOLDER + "Valid_Step_2"
+COMBINED_TRAIN_FOLDER = MAIN_FOLDER + "Combined_Training_Set"
+COMBINED_VALID_FOLDER = MAIN_FOLDER + "Combined_Validation_Set"
+EXTRACTED_TRAINING_FOLDER = MAIN_FOLDER + "Extracted_Training_Data"
+EXTRACTED_VALIDATION_FOLDER = MAIN_FOLDER + "Extracted_Validation_Data"
+TRAIN_FOLDER_WITHOUT_TXT = MAIN_FOLDER + "Combined_Extract_Training_ImgOnly"
+VALID_FOLDER_WITHOUT_TXT = MAIN_FOLDER + "Combined_Extract_Validation_ImgOnly"
+TRAIN_FOLDER_WITH_TXT = MAIN_FOLDER + "Combined_Extract_Training_TxtOnly"
+VALID_FOLDER_WITH_TXT = MAIN_FOLDER + "Combined__Extract_Validation_TxtOnly"
 
 os.makedirs(TRAIN_FOLDER_WITHOUT_TXT, exist_ok=True)
 os.makedirs(VALID_FOLDER_WITHOUT_TXT, exist_ok=True)

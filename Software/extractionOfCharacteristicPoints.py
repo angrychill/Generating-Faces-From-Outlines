@@ -4,16 +4,29 @@ import os
 from pathlib import Path
 import numpy as np
 
-BASE_FOLDER = "C:/Users/Iris/Documents/TrainingData/"
 # Define paths for processed train and validation data
-PROCESSED_TRAIN_FOLDER = BASE_FOLDER + "Combined_Training_Set"
-PROCESSED_VALID_FOLDER = BASE_FOLDER + "Combined_Validation_Set"
 
-PREDICTOR_FILE = "C:\Program Files\GitHub projects\Facial-Deidentification-Using-GAN\Software\shape_predictor_68_face_landmarks.dat"
+PREDICTOR_FILE = "C:/Program Files/GitHub projects/Facial-Deidentification-Using-GAN/Software/shape_predictor_68_face_landmarks.dat"
+
+
+BASE_FOLDER = "C:/Users/Iris/Documents/TrainingData New/"
+MAIN_FOLDER = BASE_FOLDER + "celeb" # koji dataset koristiti
+TRAIN_FOLDER = MAIN_FOLDER + "TrainingSet"
+VALID_FOLDER = MAIN_FOLDER + "ValidationSet"
+MULTIPLE_FACES_FOLDER = MAIN_FOLDER + "MultipleFaces"
+NO_FACE_FOLDER = MAIN_FOLDER + "NoFaces"
+PROCESSED_TRAIN_FOLDER = MAIN_FOLDER + "Combined_Training_Set"
+PROCESSED_VALID_FOLDER = MAIN_FOLDER + "Combined_Validation_Set"
+PROCESSED_TRAIN_FOLDER_STEP1 = MAIN_FOLDER + "Training_Step_1"
+PROCESSED_VALID_FOLDER_STEP1 = MAIN_FOLDER + "Valid_Step_1"
+PROCESSED_TRAIN_FOLDER_STEP2 = MAIN_FOLDER + "Training_Step_2"
+PROCESSED_VALID_FOLDER_STEP2 = MAIN_FOLDER + "Valid_Step_2"
+COMBINED_TRAIN_FOLDER = MAIN_FOLDER + "Combined_Training_Set"
+COMBINED_VALID_FOLDER = MAIN_FOLDER + "Combined_Validation_Set"
 
 # Define paths for saving new data
-NEW_TRAIN_FOLDER = BASE_FOLDER + "Extracted_Training_Data"
-NEW_VALID_FOLDER = BASE_FOLDER + "Extracted_Validation_Data"
+NEW_TRAIN_FOLDER = MAIN_FOLDER + "Extracted_Training_Data"
+NEW_VALID_FOLDER = MAIN_FOLDER + "Extracted_Validation_Data"
 
 # Ensure the output directories exist
 Path(NEW_TRAIN_FOLDER).mkdir(parents=True, exist_ok=True)
@@ -74,10 +87,10 @@ def process_images_with_landmarks(input_folder, output_folder, target_size=(256,
                 cv2.circle(blank_image, (point.x, point.y), 2, (0, 0, 0), -1)
 
             # Optionally save points to a file
-            points_file = os.path.join(output_folder, f"{os.path.splitext(image_file)[0]}_points.txt")
-            with open(points_file, "w") as f:
-                for point in points:
-                    f.write(f"{point[0]}, {point[1]}\n")
+            # points_file = os.path.join(output_folder, f"{os.path.splitext(image_file)[0]}_points.txt")
+            # with open(points_file, "w") as f:
+            #     for point in points:
+            #         f.write(f"{point[0]}, {point[1]}\n")
 
         # Save the new annotated image
         output_img_path = os.path.join(output_folder, image_file)
@@ -87,4 +100,4 @@ def process_images_with_landmarks(input_folder, output_folder, target_size=(256,
 
 # Process train and validation datasets
 process_images_with_landmarks(PROCESSED_TRAIN_FOLDER, NEW_TRAIN_FOLDER)
-process_images_with_landmarks(PROCESSED_VALID_FOLDER, NEW_VALID_FOLDER)
+# process_images_with_landmarks(PROCESSED_VALID_FOLDER, NEW_VALID_FOLDER)

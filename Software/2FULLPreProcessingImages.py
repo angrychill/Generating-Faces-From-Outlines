@@ -3,15 +3,18 @@ import os
 import numpy as np
 from concurrent.futures import ProcessPoolExecutor
 
-BASE_FOLDER = "C:/Users/Iris/Documents/TrainingData/"
-TRAIN_FOLDER = BASE_FOLDER + "TrainingSet"
-VALID_FOLDER = BASE_FOLDER + "ValidationSet"
-PROCESSED_TRAIN_FOLDER_STEP1 = BASE_FOLDER + "Training_Step_1"
-PROCESSED_VALID_FOLDER_STEP1 = BASE_FOLDER + "Valid_Step_1"
-PROCESSED_TRAIN_FOLDER_STEP2 = BASE_FOLDER + "Training_Step_2"
-PROCESSED_VALID_FOLDER_STEP2 = BASE_FOLDER + "Valid_Step_2"
-COMBINED_TRAIN_FOLDER = BASE_FOLDER + "Combined_Training_Set"
-COMBINED_VALID_FOLDER = BASE_FOLDER + "Combined_Validation_Set"
+BASE_FOLDER = "C:/Users/Iris/Documents/TrainingData New/"
+MAIN_FOLDER = BASE_FOLDER + "celeb" # koji dataset koristiti
+TRAIN_FOLDER = MAIN_FOLDER + "TrainingSet"
+VALID_FOLDER = MAIN_FOLDER + "ValidationSet"
+MULTIPLE_FACES_FOLDER = MAIN_FOLDER + "MultipleFaces"
+NO_FACE_FOLDER = MAIN_FOLDER + "NoFaces"
+PROCESSED_TRAIN_FOLDER_STEP1 = MAIN_FOLDER + "Training_Step_1"
+PROCESSED_VALID_FOLDER_STEP1 = MAIN_FOLDER + "Valid_Step_1"
+PROCESSED_TRAIN_FOLDER_STEP2 = MAIN_FOLDER + "Training_Step_2"
+PROCESSED_VALID_FOLDER_STEP2 = MAIN_FOLDER + "Valid_Step_2"
+COMBINED_TRAIN_FOLDER = MAIN_FOLDER + "Combined_Training_Set"
+COMBINED_VALID_FOLDER = MAIN_FOLDER + "Combined_Validation_Set"
 
 BATCH_SIZE = 128  # Broj slika koje procesiramo odjednom
 TARGET_SIZE = (256, 256)  # Ciljna veličina slika (256x256)
@@ -51,17 +54,17 @@ def preprocess_image_step1(image_path, output_folder):
         return
 
     # Uklanjanje šuma koristeći Gaussov filter
-    image = cv2.GaussianBlur(image, (5, 5), 0)
+    # image = cv2.GaussianBlur(image, (5, 5), 0)
 
     # Poboljšanje oštrine slike koristeći Unsharp Masking
-    image_blurred = cv2.GaussianBlur(image, (21, 21), 10)
-    image = cv2.addWeighted(image, 1.5, image_blurred, -0.5, 0)
+    # image_blurred = cv2.GaussianBlur(image, (21, 21), 10)
+    # image = cv2.addWeighted(image, 1.5, image_blurred, -0.5, 0)
 
     # Promijeni kontrast
-    image = adjust_contrast(image)
+    # image = adjust_contrast(image)
 
     # Promijeni veličinu slike
-    image = resize_image(image, TARGET_SIZE)
+    # image = resize_image(image, TARGET_SIZE)
 
     # Spremi obrađenu sliku
     filename = os.path.basename(image_path)
