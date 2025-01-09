@@ -42,34 +42,35 @@ parser.add_argument(
 parser.add_argument("--checkpoint_interval", type=int, default=-1, help="interval between model checkpoints")
 opt = parser.parse_args()
 print(opt)
-SET_INPUT= "C:/Users/Iris/Documents/TrainingData/Combined_Extract_Training_ImgOnly"
-SET_OUTPUT = "C:/Users/Iris/Documents/TrainingData/Combined_Training_Set"
+SET_OUTPUT = "C:/Users/Iris/Documents/TrainingData/Combined_Extract_Training_ImgOnly"
+SET_INPUT = "C:/Users/Iris/Documents/TrainingData/Combined_Training_Set"
 
 os.makedirs("images/%s" % opt.dataset_name, exist_ok=True)
 os.makedirs("saved_models/%s" % opt.dataset_name, exist_ok=True)
 
+#print("checkpoint 1")
 cuda = True if torch.cuda.is_available() else False
-
+#print("checkpoint 2")
 # Loss functions
 criterion_GAN = torch.nn.MSELoss()
 criterion_pixelwise = torch.nn.L1Loss()
-
+#print("checkpoint 3")
 # Loss weight of L1 pixel-wise loss between translated image and real image
 lambda_pixel = 100
 
 # Calculate output of image discriminator (PatchGAN)
 patch = (1, opt.img_height // 2 ** 4, opt.img_width // 2 ** 4)
-
+#print("checkpoint 4")
 # Initialize generator and discriminator
 generator = GeneratorUNet()
 discriminator = Discriminator()
-
+#print("checkpoint 5")
 if cuda:
     generator = generator.cuda()
     discriminator = discriminator.cuda()
     criterion_GAN.cuda()
     criterion_pixelwise.cuda()
-
+#print("checkpoint 6")
 if opt.epoch != 0:
     # Load pretrained models
     generator.load_state_dict(torch.load("saved_models/%s/generator_%d.pth" % (opt.dataset_name, opt.epoch)))
@@ -78,36 +79,36 @@ else:
     # Initialize weights
     generator.apply(weights_init_normal)
     discriminator.apply(weights_init_normal)
-
+#print("checkpoint 7")
 # Optimizers
 optimizer_G = torch.optim.Adam(generator.parameters(), lr=opt.lr, betas=(opt.b1, opt.b2))
 optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=opt.lr, betas=(opt.b1, opt.b2))
-
+#print("checkpoint 8")
 # Configure dataloaders
 transforms_ = [
     transforms.Resize((opt.img_height, opt.img_width), Image.BICUBIC),
     transforms.ToTensor(),
     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
 ]
-
+#print("checkpoint 9")
 dataloader = DataLoader(
     ImageDataset(SET_INPUT, SET_OUTPUT, transforms_=transforms_),
     batch_size=opt.batch_size,
     shuffle=True,
     num_workers=opt.n_cpu,
 )
-
+#print("checkpoint 10")
 val_dataloader = DataLoader(
     ImageDataset(SET_INPUT, SET_OUTPUT, transforms_=transforms_, mode="val"),
     batch_size=10,
     shuffle=True,
     num_workers=1,
 )
-
+#print("checkpoint 11")
 # Tensor type
 Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
-
+#print("checkpoint 12")
 def sample_images(batches_done):
     """Saves a generated sample from the validation set"""
     imgs = next(iter(val_dataloader))
@@ -121,91 +122,96 @@ def sample_images(batches_done):
 # ----------
 #  Training
 # ----------
-
+#print("checkpoint 13")
 prev_time = time.time()
+# print("checkpoint 14")
 
-for epoch in range(opt.epoch, opt.n_epochs):
-    for i, batch in enumerate(dataloader):
 
-        # Model inputs
-        real_A = Variable(batch["B"].type(Tensor))
-        real_B = Variable(batch["A"].type(Tensor))
+if __name__ == "__main__":
 
-        # Adversarial ground truths
-        valid = Variable(Tensor(np.ones((real_A.size(0), *patch))), requires_grad=False)
-        fake = Variable(Tensor(np.zeros((real_A.size(0), *patch))), requires_grad=False)
+    for epoch in range(opt.epoch, opt.n_epochs):
+ #       print("checkpoint 14.5")
+        for i, batch in enumerate(dataloader):
+  #          print("checkpoint 15")
+            # Model inputs
+            real_A = Variable(batch["B"].type(Tensor))
+            real_B = Variable(batch["A"].type(Tensor))
+   #         print("checkpoint 16")
+            # Adversarial ground truths
+            valid = Variable(Tensor(np.ones((real_A.size(0), *patch))), requires_grad=False)
+            fake = Variable(Tensor(np.zeros((real_A.size(0), *patch))), requires_grad=False)
+    #        print("checkpoint 17")
+            # ------------------
+            #  Train Generators
+            # ------------------
+     #       print("checkpoint 18")
+            optimizer_G.zero_grad()
 
-        # ------------------
-        #  Train Generators
-        # ------------------
+            # GAN loss
+            fake_B = generator(real_A)
+            pred_fake = discriminator(fake_B, real_A)
+            loss_GAN = criterion_GAN(pred_fake, valid)
+            # Pixel-wise loss
+            loss_pixel = criterion_pixelwise(fake_B, real_B)
 
-        optimizer_G.zero_grad()
+            # Total loss
+            loss_G = loss_GAN + lambda_pixel * loss_pixel
 
-        # GAN loss
-        fake_B = generator(real_A)
-        pred_fake = discriminator(fake_B, real_A)
-        loss_GAN = criterion_GAN(pred_fake, valid)
-        # Pixel-wise loss
-        loss_pixel = criterion_pixelwise(fake_B, real_B)
+            loss_G.backward()
 
-        # Total loss
-        loss_G = loss_GAN + lambda_pixel * loss_pixel
+            optimizer_G.step()
+      #      print("checkpoint 19")
+            # ---------------------
+            #  Train Discriminator
+            # ---------------------
 
-        loss_G.backward()
+            optimizer_D.zero_grad()
 
-        optimizer_G.step()
+            # Real loss
+            pred_real = discriminator(real_B, real_A)
+            loss_real = criterion_GAN(pred_real, valid)
 
-        # ---------------------
-        #  Train Discriminator
-        # ---------------------
+            # Fake loss
+            pred_fake = discriminator(fake_B.detach(), real_A)
+            loss_fake = criterion_GAN(pred_fake, fake)
 
-        optimizer_D.zero_grad()
+            # Total loss
+            loss_D = 0.5 * (loss_real + loss_fake)
 
-        # Real loss
-        pred_real = discriminator(real_B, real_A)
-        loss_real = criterion_GAN(pred_real, valid)
+            loss_D.backward()
+            optimizer_D.step()
 
-        # Fake loss
-        pred_fake = discriminator(fake_B.detach(), real_A)
-        loss_fake = criterion_GAN(pred_fake, fake)
-
-        # Total loss
-        loss_D = 0.5 * (loss_real + loss_fake)
-
-        loss_D.backward()
-        optimizer_D.step()
-
-        # --------------
-        #  Log Progress
-        # --------------
-
-        # Determine approximate time left
-        batches_done = epoch * len(dataloader) + i
-        batches_left = opt.n_epochs * len(dataloader) - batches_done
-        time_left = datetime.timedelta(seconds=batches_left * (time.time() - prev_time))
-        prev_time = time.time()
-
-        # Print log
-        sys.stdout.write(
-            "\r[Epoch %d/%d] [Batch %d/%d] [D loss: %f] [G loss: %f, pixel: %f, adv: %f] ETA: %s"
-            % (
-                epoch,
-                opt.n_epochs,
-                i,
-                len(dataloader),
-                loss_D.item(),
-                loss_G.item(),
-                loss_pixel.item(),
-                loss_GAN.item(),
-                time_left,
+            # --------------
+            #  Log Progress
+            # --------------
+      #      print("checkpoint 20")
+            # Determine approximate time left
+            batches_done = epoch * len(dataloader) + i
+            batches_left = opt.n_epochs * len(dataloader) - batches_done
+            time_left = datetime.timedelta(seconds=batches_left * (time.time() - prev_time))
+            prev_time = time.time()
+       #     print("checkpoint 21")
+            # Print log
+            sys.stdout.write(
+                "\r[Epoch %d/%d] [Batch %d/%d] [D loss: %f] [G loss: %f, pixel: %f, adv: %f] ETA: %s"
+                % (
+                    epoch,
+                    opt.n_epochs,
+                    i,
+                    len(dataloader),
+                    loss_D.item(),
+                    loss_G.item(),
+                    loss_pixel.item(),
+                    loss_GAN.item(),
+                    time_left,
+                )
             )
-        )
 
-        # If at sample interval save image
-        if batches_done % opt.sample_interval == 0:
-            sample_images(batches_done)
+            # If at sample interval save image
+            if batches_done % opt.sample_interval == 0:
+                sample_images(batches_done)
 
-    if opt.checkpoint_interval != -1 and epoch % opt.checkpoint_interval == 0:
-        # Save model checkpoints
-        torch.save(generator.state_dict(), "saved_models/%s/generator_%d.pth" % (opt.dataset_name, epoch))
-        torch.save(discriminator.state_dict(), "saved_models/%s/discriminator_%d.pth" % (opt.dataset_name, epoch))
+        if opt.checkpoint_interval != -1 and epoch % opt.checkpoint_interval == 0:
+            # Save model checkpoints
+            torch.save(generator.state_dict(), "saved_models/%s/generator_%d.pth" % (opt.dataset_name, epoch))
+            torch.save(discriminator.state_dict(), "saved_models/%s/discriminator_%d.pth" % (opt.dataset_name, epoch))
