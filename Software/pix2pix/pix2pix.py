@@ -42,8 +42,8 @@ parser.add_argument(
 parser.add_argument("--checkpoint_interval", type=int, default=-1, help="interval between model checkpoints")
 opt = parser.parse_args()
 print(opt)
-SET_OUTPUT = "C:/Users/Iris/Documents/TrainingData New/celebExtracted_Training_Data"
-SET_INPUT = "C:/Users/Iris/Documents/TrainingData New/celebCombined_Training_Set"
+SET_OUTPUT = "C:/Users/Iris/Documents/RI_Training_Data/FinalTrainingSet"
+SET_INPUT = "C:/Users/Iris/Documents/RI_Training_Data/TrainingSet"
 
 os.makedirs("images/%s" % opt.dataset_name, exist_ok=True)
 os.makedirs("saved_models/%s" % opt.dataset_name, exist_ok=True)
