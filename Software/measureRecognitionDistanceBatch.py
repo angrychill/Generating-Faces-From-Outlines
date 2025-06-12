@@ -14,6 +14,10 @@ import sys
 from pathlib import Path
 import csv
 
+from PIL import Image
+import numpy as np
+
+
 import torchvision.transforms as transforms
 from torchvision.utils import save_image
 from torchvision.utils import make_grid
@@ -108,9 +112,43 @@ subset_dataset = Subset(full_dataset, list(range(10)))
 val_dataloader = DataLoader(
     subset_dataset,
     batch_size=1,
-    shuffle=True,
+    shuffle=False,
     num_workers=4,
 )
+
+def tensor_to_pil(img_tensor):
+    """
+    Convert a torch tensor image to PIL Image.
+    img_tensor shape: (C, H, W), normalized [-1, 1]
+    """
+    img_np = img_tensor.cpu().detach().numpy()
+    img_np = ((img_np + 1) * 127.5).astype(np.uint8)  # scale [-1,1] to [0,255]
+    img_np = np.transpose(img_np, (1, 2, 0))  # C,H,W to H,W,C
+    return Image.fromarray(img_np)
+
+def precompute_real_embeddings(val_dataloader, model):
+    real_embeddings = []
+    print("Precomputing real embeddings...")
+    for i, imgs in enumerate(val_dataloader):
+        real_img_tensor = imgs["A"][0]  # Ground truth face image tensor (batch_size=1)
+        pil_img = tensor_to_pil(real_img_tensor)
+        img_np = np.array(pil_img)  # <-- Convert PIL to numpy here!
+        emb = DeepFace.represent(img_np, model_name="Facenet", enforce_detection=False)[0]["embedding"]
+        real_embeddings.append(emb)
+    print("Done precomputing real embeddings.")
+    return real_embeddings
+
+def batch_compute_fake_embeddings(fake_imgs_tensor_list, model):
+    pil_imgs = [tensor_to_pil(img_tensor[0]) for img_tensor in fake_imgs_tensor_list]  # list of PIL images
+    embeddings = []
+    for pil_img in pil_imgs:
+        img_np = np.array(pil_img)  # Convert PIL to numpy array
+        emb = DeepFace.represent(img_np, model_name="Facenet", enforce_detection=False)[0]["embedding"]
+        embeddings.append(emb)
+    return embeddings
+
+
+
 
 def compute_similarity(img1_path, img2_path, model):
     # Get embeddings
@@ -121,9 +159,10 @@ def compute_similarity(img1_path, img2_path, model):
     return cosine_similarity([emb1], [emb2])[0][0]
 
 
-def get_face_comp_result(val_dataloader, generator, output_dir, output_file="similarities_epoch_8.csv"):
+def get_face_comp_result(val_dataloader, generator, output_dir, real_embeddings, output_file="similarities.csv"):
     os.makedirs(output_dir, exist_ok=True)
     similarities = []
+    fake_images = []
 
     generator.eval()
 
@@ -131,35 +170,36 @@ def get_face_comp_result(val_dataloader, generator, output_dir, output_file="sim
         writer = csv.writer(file)
         writer.writerow(["Index", "Similarity"])
 
+        # Step 1: Generate all fake images first
         for i, imgs in enumerate(val_dataloader):
-            real_A = Variable(imgs["B"].type(Tensor))  # Outline image
-            real_B = Variable(imgs["A"].type(Tensor))  # Ground truth face
+            real_A = imgs["B"].type(Tensor)  # Outline image
+            real_B = imgs["A"].type(Tensor)  # Ground truth face
 
-            fake_B = generator(real_A)
+            with torch.no_grad():
+                fake_B = generator(real_A)
 
-            # Save input (outline), generated, and real images
-            input_path = os.path.join(output_dir, f"input_{i}.png")
-            fake_path = os.path.join(output_dir, f"fake_{i}.png")
-            real_path = os.path.join(output_dir, f"real_{i}.png")
+            fake_images.append(fake_B.cpu())
 
+            # Save combined image for visual comparison (optional)
             combined = make_grid(
-            [real_A.data[0], fake_B.data[0], real_B.data[0]],  # Use [0] to get single image tensor from batch
-            nrow=3,
-            normalize=True,
-            padding=10
-                )
-            
-            save_image(fake_B.data[0], fake_path, normalize=True)
-            save_image(real_B.data[0], real_path, normalize=True)
-
+                [real_A.data[0].cpu(), fake_B.data[0].cpu(), real_B.data[0].cpu()],
+                nrow=3,
+                normalize=True,
+                padding=10
+            )
             combined_path = os.path.join(output_dir, f"comparison_{i}.png")
             save_image(combined, combined_path)
 
-            try:
-                similarity = compute_similarity(fake_path, real_path, facenet_model)
+        # Step 2: Batch compute fake embeddings
+        fake_embeddings = batch_compute_fake_embeddings(fake_images, facenet_model)
 
+        # Step 3: Compute cosine similarity for each pair
+        for i, fake_emb in enumerate(fake_embeddings):
+            try:
+                real_emb = real_embeddings[i]
+                similarity = cosine_similarity([fake_emb], [real_emb])[0][0]
             except Exception as e:
-                print(f"Error comparing images {i}: {e}")
+                print(f"Error computing similarity for index {i}: {e}")
                 similarity = 0.0
 
             similarities.append(similarity)
@@ -167,17 +207,21 @@ def get_face_comp_result(val_dataloader, generator, output_dir, output_file="sim
 
     return similarities
 
+
 ## THE HIGHER THE NUMBER, THE MORE SIMILAR THE FACE
 ## -1 : TOTALLY DISSIMILAR, 1 : TOTALLY SIMILAR
 
 if __name__ == "__main__":
+    # Precompute embeddings for all real images in val set
+    real_embeddings = precompute_real_embeddings(val_dataloader, facenet_model)
+
     # Path to directory with all 40 generator models
     generator_models_dir = "C:/Users/Iris/Documents/Generating-Faces-From-Outlines/saved_models/outlines"
     
     # Output CSV file to store average similarities per epoch
     summary_csv = os.path.join(generator_models_dir, "epoch_similarities.csv")
     
-    # Prepare summary output
+    # Prepare summary output CSV
     with open(summary_csv, mode="w", newline="") as summary_file:
         writer = csv.writer(summary_file)
         writer.writerow(["Epoch", "Average Similarity"])
@@ -202,8 +246,9 @@ if __name__ == "__main__":
             # File to save similarities for each image pair
             sim_file = os.path.join(epoch_output_dir, f"similarities_epoch_{epoch}.csv")
             
-            # Evaluate
-            similarities = get_face_comp_result(val_dataloader, generator, epoch_output_dir, sim_file)
+            # Evaluate similarities using the new function
+            similarities = get_face_comp_result(val_dataloader, generator, epoch_output_dir, real_embeddings, sim_file)
+            
             avg_similarity = sum(similarities) / len(similarities) if similarities else 0
             
             # Log result
