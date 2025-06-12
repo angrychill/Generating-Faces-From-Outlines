@@ -24,6 +24,7 @@ from torch.autograd import Variable
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
+from torch.utils.data import Subset
 
 from pix2pix.models import *
 from pix2pix.datasets import *
@@ -100,17 +101,21 @@ dataloader = DataLoader(
     num_workers=opt.n_cpu,
 )
 
+
+full_dataset = ImageDataset(SET_INPUT, SET_OUTPUT, transforms_=transforms_, mode="val")
+subset_dataset = Subset(full_dataset, list(range(10)))
+
 val_dataloader = DataLoader(
-    ImageDataset(SET_INPUT, SET_OUTPUT, transforms_=transforms_, mode="val"),
-    batch_size=8,
+    subset_dataset,
+    batch_size=1,
     shuffle=True,
     num_workers=4,
 )
 
 def compute_similarity(img1_path, img2_path, model):
     # Get embeddings
-    emb1 = DeepFace.represent(img_path=img1_path, model_name="Facenet", model=model, enforce_detection=False)[0]["embedding"]
-    emb2 = DeepFace.represent(img_path=img2_path, model_name="Facenet", model=model, enforce_detection=False)[0]["embedding"]
+    emb1 = DeepFace.represent(img_path=img1_path, model_name="Facenet", enforce_detection=False)[0]["embedding"]
+    emb2 = DeepFace.represent(img_path=img2_path, model_name="Facenet", enforce_detection=False)[0]["embedding"]
 
     # Cosine similarity
     return cosine_similarity([emb1], [emb2])[0][0]
@@ -143,6 +148,9 @@ def get_face_comp_result(val_dataloader, generator, output_dir, output_file="sim
             normalize=True,
             padding=10
                 )
+            
+            save_image(fake_B.data[0], fake_path, normalize=True)
+            save_image(real_B.data[0], real_path, normalize=True)
 
             combined_path = os.path.join(output_dir, f"comparison_{i}.png")
             save_image(combined, combined_path)
