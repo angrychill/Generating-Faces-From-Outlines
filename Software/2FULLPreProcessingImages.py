@@ -3,29 +3,21 @@ import os
 import numpy as np
 from concurrent.futures import ProcessPoolExecutor
 
-BASE_FOLDER = "C:/Users/Iris/Documents/TrainingData New/"
-MAIN_FOLDER = BASE_FOLDER + "celeb" # koji dataset koristiti
-TRAIN_FOLDER = MAIN_FOLDER + "TrainingSet"
-VALID_FOLDER = MAIN_FOLDER + "ValidationSet"
-MULTIPLE_FACES_FOLDER = MAIN_FOLDER + "MultipleFaces"
-NO_FACE_FOLDER = MAIN_FOLDER + "NoFaces"
-PROCESSED_TRAIN_FOLDER_STEP1 = MAIN_FOLDER + "Training_Step_1"
-PROCESSED_VALID_FOLDER_STEP1 = MAIN_FOLDER + "Valid_Step_1"
-PROCESSED_TRAIN_FOLDER_STEP2 = MAIN_FOLDER + "Training_Step_2"
-PROCESSED_VALID_FOLDER_STEP2 = MAIN_FOLDER + "Valid_Step_2"
-COMBINED_TRAIN_FOLDER = MAIN_FOLDER + "Combined_Training_Set"
-COMBINED_VALID_FOLDER = MAIN_FOLDER + "Combined_Validation_Set"
+BASE_FOLDER = "C:/Users/Iris/Documents/RI_Training_Data/"
+
+TRAIN_FOLDER = BASE_FOLDER + "TrainingSet"
+VALID_FOLDER = BASE_FOLDER + "ValidationSet"
+
+
+FINAL_TRAIN_FOLDER = BASE_FOLDER + "FinalTrainingSet"
+FINAL_VALID_FOLDER = BASE_FOLDER + "FinalValidationSet"
 
 BATCH_SIZE = 128  # Broj slika koje procesiramo odjednom
 TARGET_SIZE = (256, 256)  # Ciljna veličina slika (256x256)
 
 # Kreiraj foldere za obrađene slike
-os.makedirs(PROCESSED_TRAIN_FOLDER_STEP1, exist_ok=True)
-os.makedirs(PROCESSED_VALID_FOLDER_STEP1, exist_ok=True)
-os.makedirs(PROCESSED_TRAIN_FOLDER_STEP2, exist_ok=True)
-os.makedirs(PROCESSED_VALID_FOLDER_STEP2, exist_ok=True)
-os.makedirs(COMBINED_TRAIN_FOLDER, exist_ok=True)
-os.makedirs(COMBINED_VALID_FOLDER, exist_ok=True)
+os.makedirs(FINAL_TRAIN_FOLDER, exist_ok=True)
+os.makedirs(FINAL_VALID_FOLDER, exist_ok=True)
 
 def adjust_contrast(image, alpha=1.2, beta=30):
     """Povećaj kontrast slike."""
@@ -97,6 +89,31 @@ def preprocess_image_step2(image_path, output_folder):
     # cv2.imwrite(output_path_combined, image)
     # print(f"Slika spremljena u STEP2: {output_path} i {output_path_combined}")
 
+def preprocess_image_step3(image_path, output_folder):
+    """Kreiranje outlines"""
+    
+    image = cv2.imread(image_path)
+    if image is None:
+        print(f"Ne mogu učitati sliku: {image_path}")
+        return
+
+    # Pretvori sliku u sivu skalu
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # Primijeni GaussianBlur za smanjenje šuma
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+
+    # Primijeni Canny edge detection
+    edges = cv2.Canny(blurred, threshold1=50, threshold2=150)
+
+    # Invertiraj boje kako bi rubovi bili crni na bijeloj pozadini
+    outline = cv2.bitwise_not(edges)
+
+    # Spremi konturiranu sliku
+    filename = os.path.basename(image_path)
+    output_path = os.path.join(output_folder, filename)
+    cv2.imwrite(output_path, outline)
+
 def preprocess_images_in_batches(input_folder, output_folder, batch_size, step_function):
     """Funkcija za obrađivanje slika u batchovima."""
     all_image_paths = []
@@ -116,11 +133,13 @@ def preprocess_images_in_batches(input_folder, output_folder, batch_size, step_f
 
 if __name__ == '__main__':
     # Prvi korak predprocesiranja: promijeni kontrast, izoštri i promijeni veličinu
-    preprocess_images_in_batches(TRAIN_FOLDER, PROCESSED_TRAIN_FOLDER_STEP1, BATCH_SIZE, preprocess_image_step1)
-    preprocess_images_in_batches(VALID_FOLDER, PROCESSED_VALID_FOLDER_STEP1, BATCH_SIZE, preprocess_image_step1)
+    # preprocess_images_in_batches(TRAIN_FOLDER, PROCESSED_TRAIN_FOLDER_STEP1, BATCH_SIZE, preprocess_image_step1)
+    # preprocess_images_in_batches(VALID_FOLDER, PROCESSED_VALID_FOLDER_STEP1, BATCH_SIZE, preprocess_image_step1)
 
-    # Drugi korak predprocesiranja: rotacija i flip
-    preprocess_images_in_batches(PROCESSED_TRAIN_FOLDER_STEP1, PROCESSED_TRAIN_FOLDER_STEP2, BATCH_SIZE, preprocess_image_step2)
-    preprocess_images_in_batches(PROCESSED_VALID_FOLDER_STEP1, PROCESSED_VALID_FOLDER_STEP2, BATCH_SIZE, preprocess_image_step2)
+    # # Drugi korak predprocesiranja: rotacija i flip
+    # preprocess_images_in_batches(PROCESSED_TRAIN_FOLDER_STEP1, PROCESSED_TRAIN_FOLDER_STEP2, BATCH_SIZE, preprocess_image_step2)
+    # preprocess_images_in_batches(PROCESSED_VALID_FOLDER_STEP1, PROCESSED_VALID_FOLDER_STEP2, BATCH_SIZE, preprocess_image_step2)
 
+    preprocess_images_in_batches(TRAIN_FOLDER, FINAL_TRAIN_FOLDER, BATCH_SIZE, preprocess_image_step3)
+    preprocess_images_in_batches(VALID_FOLDER, FINAL_VALID_FOLDER, BATCH_SIZE, preprocess_image_step3)
     print(f"Predprocesirane slike spremljene u foldere.")
