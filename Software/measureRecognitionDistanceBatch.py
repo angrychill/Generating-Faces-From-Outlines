@@ -16,6 +16,7 @@ import csv
 
 import torchvision.transforms as transforms
 from torchvision.utils import save_image
+from torchvision.utils import make_grid
 
 from torch.utils.data import DataLoader
 from torchvision import datasets
@@ -27,6 +28,8 @@ import torch
 from pix2pix.models import *
 from pix2pix.datasets import *
 
+from sklearn.metrics.pairwise import cosine_similarity
+
 BASE_FOLDER = "C:/Users/Iris/Documents/TrainingData New/"
 MAIN_FOLDER = BASE_FOLDER + "celeb" # koji dataset koristiti
 
@@ -34,7 +37,7 @@ GENERATOR_MODEL_FILE = "C:/Users/Iris/Documents/Generating-Faces-From-Outlines/s
 DISCRIMINATOR_MODEL_FILE = "C:/Users/Iris/Documents/Generating-Faces-From-Outlines/saved_models/outlines/discriminator_40.pth"
 
 SET_OUTPUT = "C:/Users/Iris/Documents/RI_Training_Data/FinalValidationSet"
-SET_INPUT = "C:/Users/Iris/Documents/RI_Training_Data/ValidationSett"
+SET_INPUT = "C:/Users/Iris/Documents/RI_Training_Data/ValidationSet"
 
 VALIDATION_OUTPUT_DIR = "C:/Users/Iris/Documents/RI_Training_Data/ComparisonOutput"
 
@@ -61,6 +64,8 @@ cuda = True if torch.cuda.is_available() else False
 
 criterion_GAN = torch.nn.MSELoss()
 criterion_pixelwise = torch.nn.L1Loss()
+
+facenet_model = DeepFace.build_model("Facenet")
 
 
 # Initialize generator and discriminator
@@ -102,38 +107,60 @@ val_dataloader = DataLoader(
     num_workers=4,
 )
 
+def compute_similarity(img1_path, img2_path, model):
+    # Get embeddings
+    emb1 = DeepFace.represent(img_path=img1_path, model_name="Facenet", model=model, enforce_detection=False)[0]["embedding"]
+    emb2 = DeepFace.represent(img_path=img2_path, model_name="Facenet", model=model, enforce_detection=False)[0]["embedding"]
+
+    # Cosine similarity
+    return cosine_similarity([emb1], [emb2])[0][0]
+
+
 def get_face_comp_result(val_dataloader, generator, output_dir, output_file="similarities_epoch_8.csv"):
     os.makedirs(output_dir, exist_ok=True)
     similarities = []
-   
+
     generator.eval()
-    
+
     with open(output_file, mode="w", newline="") as file:
         writer = csv.writer(file)
         writer.writerow(["Index", "Similarity"])
-        
+
         for i, imgs in enumerate(val_dataloader):
-            # input A, target B
-            real_A = Variable(imgs["B"].type(Tensor))  # Extracted facial characteristics
-            real_B = Variable(imgs["A"].type(Tensor))
-        
-        # generation of reconstructed face
+            real_A = Variable(imgs["B"].type(Tensor))  # Outline image
+            real_B = Variable(imgs["A"].type(Tensor))  # Ground truth face
+
             fake_B = generator(real_A)
+
+            # Save input (outline), generated, and real images
+            input_path = os.path.join(output_dir, f"input_{i}.png")
             fake_path = os.path.join(output_dir, f"fake_{i}.png")
             real_path = os.path.join(output_dir, f"real_{i}.png")
-        
-            save_image(fake_B.data, fake_path, normalize=True)
-            save_image(real_B.data, real_path, normalize=True)
-        # distance_metric (string): Metric for measuring similarity. Options: 'cosine' 'euclidean', 'euclidean_l2' 
-            result_cos = DeepFace.verify(fake_path, real_path, model_name="Facenet", distance_metric="cosine")
-            similarity = 1 - result_cos["distance"]
-            
-            
+
+            combined = make_grid(
+            [real_A.data[0], fake_B.data[0], real_B.data[0]],  # Use [0] to get single image tensor from batch
+            nrow=3,
+            normalize=True,
+            padding=10
+                )
+
+            combined_path = os.path.join(output_dir, f"comparison_{i}.png")
+            save_image(combined, combined_path)
+
+            try:
+                similarity = compute_similarity(fake_path, real_path, facenet_model)
+
+            except Exception as e:
+                print(f"Error comparing images {i}: {e}")
+                similarity = 0.0
+
             similarities.append(similarity)
-            
             writer.writerow([i, similarity])
-    
+
     return similarities
+
+## THE HIGHER THE NUMBER, THE MORE SIMILAR THE FACE
+## -1 : TOTALLY DISSIMILAR, 1 : TOTALLY SIMILAR
 
 if __name__ == "__main__":
     # Path to directory with all 40 generator models
